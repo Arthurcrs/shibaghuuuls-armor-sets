@@ -1,0 +1,72 @@
+import ctsetbonus.SetTweaks as SB;
+import crafttweaker.entity.IEntity;
+import crafttweaker.entity.IEntityLivingBase;
+import crafttweaker.damage.IDamageSource;
+import crafttweaker.player.IPlayer;
+import crafttweaker.potions.IPotion;
+import crafttweaker.potions.IPotionEffect;
+import crafttweaker.event.EntityLivingHurtEvent;
+
+// BALANCING
+
+
+
+// DEFINITION
+
+val bonusDescriptionPartial as string = "";
+
+val bonusDescriptionFull as string = "";
+
+val material as string = "";
+
+val head as string = "";
+val chest as string = "";
+val legs as string = "";
+val feet as string = "";
+
+val weapons as string[] = [
+
+];
+
+// REGISTER
+
+val armorSetName as string = material + " Armor Set";
+val weaponSetName as string = material + " Weapon Set";
+
+val armorBonusNamePartial as string = material + " Armor Partial Bonus";
+val armorBonusNameFull as string = material + " Armor Full Bonus";
+val weaponBonusName as string = material + " Weapon Bonus";
+
+SB.addEquipToSet(armorSetName, "head", head);
+SB.addEquipToSet(armorSetName, "chest", chest);
+SB.addEquipToSet(armorSetName, "legs", legs);
+SB.addEquipToSet(armorSetName, "feet", feet);
+
+SB.addEquipToSet(weaponSetName, "mainhand", weapons);
+
+SB.addSetReqToBonus(armorBonusNamePartial, bonusDescriptionPartial, armorSetName, 2);
+SB.addSetReqToBonus(armorBonusNameFull, bonusDescriptionFull, armorSetName);
+SB.addSetReqToBonus(weaponBonusName, "", armorSetName, 4, 2);
+SB.addSetReqToBonus(weaponBonusName, "", weaponSetName, -1, 2);
+
+// EVENT
+
+events.onEntityLivingHurt(function(event as EntityLivingHurtEvent) {
+    val damageSource as IDamageSource = event.damageSource;
+    val attacker as IEntity  = damageSource.getTrueSource();
+    val player as IPlayer = attacker.asIPlayer();
+    
+    if (isNull(player) == true) {
+        return;
+    }
+
+    if (player.hasSetBonus(armorBonusNamePartial) == true) {
+        player.debugMessage("Has partial set");
+
+    }
+    
+    if (player.hasSetBonus(weaponBonusName) == true) {
+        player.debugMessage("Has weapon bonus");
+        
+    }
+});
