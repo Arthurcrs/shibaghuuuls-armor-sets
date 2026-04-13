@@ -64,20 +64,32 @@ val weapons as string[] = [
 ];
 
 // ==========================================
-// UNIVERSAL REGISTER BLOCK (DO NOT EDIT)
+// UNIVERSAL REGISTER BLOCK
 // ==========================================
 
 val armorSetName as string = material + " Armor Set";
+val weaponSetName as string = material + " Weapon Set";
+
 val armorBonusNamePartial as string = material + " Armor Partial Bonus";
 val armorBonusNameFull as string = material + " Armor Full Bonus";
+val weaponBonusName as string = material + " Weapon Bonus";
 
 SB.addEquipToSet(armorSetName, "head", head);
 SB.addEquipToSet(armorSetName, "chest", chest);
 SB.addEquipToSet(armorSetName, "legs", legs);
 SB.addEquipToSet(armorSetName, "feet", feet);
 
+// Register weapons to their own set
+SB.addEquipToSet(weaponSetName, "mainhand", weapons);
+
+// 2 pieces of armor for partial
 SB.addSetReqToBonus(armorBonusNamePartial, bonusDescriptionPartial, armorSetName, 2);
+// 4 pieces of armor for full description display
 SB.addSetReqToBonus(armorBonusNameFull, bonusDescriptionFull, armorSetName, 4);
+
+// 4 pieces of armor + 1 weapon for the actual hidden weapon bonus intersection
+SB.addSetReqToBonus(weaponBonusName, "", armorSetName, 4, 2);
+SB.addSetReqToBonus(weaponBonusName, "", weaponSetName, -1, 2);
 
 // ==========================================
 // EVENTS
@@ -150,31 +162,18 @@ events.onEntityLivingHurt(function(event as EntityLivingHurtEvent) {
         val attacker as IPlayer = attackerEntity.asIPlayer();
         
         if (!isNull(attacker)) {
-            if (attacker.hasSetBonus(armorBonusNameFull) == true) {
+            
+            if (attacker.hasSetBonus(weaponBonusName) == true) {
                 
-                val heldItem = attacker.mainHandHeldItem;
-                
-                if (!isNull(heldItem)) {
-                    var holdingValidWeapon = false;
-                    val heldId = heldItem.definition.id;
+                if (event.amount > 0) {
                     
-                    for wep in weapons {
-                        if (heldId == wep) {
-                            holdingValidWeapon = true;
-                            break;
-                        }
-                    }
+                    val currentAbsorption = attacker.getTrueAbsorptionAmount();
                     
-                    if (holdingValidWeapon && event.amount > 0) {
+                    if (currentAbsorption > 0.0) {
+                        val totalBonus as double = (currentAbsorption as double) * damageBonusPerAbsorptionPoint;
                         
-                        val currentAbsorption = attacker.getTrueAbsorptionAmount();
-                        
-                        if (currentAbsorption > 0.0) {
-                            val totalBonus as double = (currentAbsorption as double) * damageBonusPerAbsorptionPoint;
-                            
-                            attacker.debugMessage(material + " Weapon: +" + ((totalBonus * 100.0) as int) + "% damage from " + currentAbsorption + " Absorption points");
-                            event.amount = event.amount * (1.0 + totalBonus);
-                        }
+                        attacker.debugMessage(material + " Weapon: +" + ((totalBonus * 100.0) as int) + "% damage from " + currentAbsorption + " Absorption points");
+                        event.amount = event.amount * (1.0 + totalBonus);
                     }
                 }
             }

@@ -79,20 +79,33 @@ val weapons as string[] = [
 ];
 
 // ==========================================
-// UNIVERSAL REGISTER BLOCK (DO NOT EDIT)
+// UNIVERSAL REGISTER BLOCK
 // ==========================================
 
 val armorSetName as string = material + " Armor Set";
+val weaponSetName as string = material + " Weapon Set";
+
 val armorBonusNamePartial as string = material + " Armor Partial Bonus";
 val armorBonusNameFull as string = material + " Armor Full Bonus";
+val weaponBonusName as string = material + " Weapon Bonus";
 
 SB.addEquipToSet(armorSetName, "head", head);
 SB.addEquipToSet(armorSetName, "chest", chest);
 SB.addEquipToSet(armorSetName, "legs", legs);
 SB.addEquipToSet(armorSetName, "feet", feet);
 
+// Register weapons to their own set
+SB.addEquipToSet(weaponSetName, "mainhand", weapons);
+
+// 2 pieces of armor for partial
 SB.addSetReqToBonus(armorBonusNamePartial, bonusDescriptionPartial, armorSetName, 2);
+
+// 4 pieces of armor for full description display
 SB.addSetReqToBonus(armorBonusNameFull, bonusDescriptionFull, armorSetName, 4);
+
+// Intersection requirement: 4 armor + 1 weapon for the actual debuff proc
+SB.addSetReqToBonus(weaponBonusName, "", armorSetName, 4, 2);
+SB.addSetReqToBonus(weaponBonusName, "", weaponSetName, -1, 2);
 
 // ==========================================
 // EVENT
@@ -137,40 +150,25 @@ events.onEntityLivingHurt(function(event as EntityLivingHurtEvent) {
             // ---------------------------------------------------------
             // Full Set (4/4 + Weapon Check) - Random Target Debuff
             // ---------------------------------------------------------
-            if (attacker.hasSetBonus(armorBonusNameFull) == true) {
+            if (attacker.hasSetBonus(weaponBonusName) == true) {
                 
-                val heldItem = attacker.mainHandHeldItem;
-                
-                if (!isNull(heldItem)) {
-                    var holdingValidWeapon = false;
-                    val heldId = heldItem.definition.id;
-                    
-                    for wep in weapons {
-                        if (heldId == wep) {
-                            holdingValidWeapon = true;
-                            break;
-                        }
-                    }
-                    
-                    if (holdingValidWeapon && event.amount > 0) {
+                if (event.amount > 0) {
+                    val world = attacker.world;
+                    if (!isNull(world)) {
+                        val rand = world.getRandom();
                         
-                        val world = attacker.world;
-                        if (!isNull(world)) {
-                            val rand = world.getRandom();
-                            
-                            if (!isNull(rand)) {
-                                // Roll the dice for the chance to apply
-                                if (rand.nextFloat() <= debuffProcChance) {
-                                    
-                                    // Pick a random debuff from the array
-                                    val debuffIndex = rand.nextInt(malachiteDebuffs.length);
-                                    val chosenDebuff = malachiteDebuffs[debuffIndex];
-                                    
-                                    attacker.debugMessage(material + " Weapon: Inflicted " + chosenDebuff + " on target!");
-                                    
-                                    // Apply the debuff to the TARGET using your custom Java expansion
-                                    targetEntity.applyPotionEffect(chosenDebuff, debuffDurationTicks, debuffAmplifier);
-                                }
+                        if (!isNull(rand)) {
+                            // Roll the dice for the chance to apply
+                            if (rand.nextFloat() <= debuffProcChance) {
+                                
+                                // Pick a random debuff from the array
+                                val debuffIndex = rand.nextInt(malachiteDebuffs.length);
+                                val chosenDebuff = malachiteDebuffs[debuffIndex];
+                                
+                                attacker.debugMessage(material + " Weapon: Inflicted " + chosenDebuff + " on target!");
+                                
+                                // Apply the debuff to the TARGET using your custom Java expansion
+                                targetEntity.applyPotionEffect(chosenDebuff, debuffDurationTicks, debuffAmplifier);
                             }
                         }
                     }

@@ -60,20 +60,33 @@ val weapons as string[] = [
 ];
 
 // ==========================================
-// UNIVERSAL REGISTER BLOCK (DO NOT EDIT)
+// UNIVERSAL REGISTER BLOCK
 // ==========================================
 
 val armorSetName as string = material + " Armor Set";
+val weaponSetName as string = material + " Weapon Set";
+
 val armorBonusNamePartial as string = material + " Armor Partial Bonus";
 val armorBonusNameFull as string = material + " Armor Full Bonus";
+val weaponBonusName as string = material + " Weapon Bonus";
 
 SB.addEquipToSet(armorSetName, "head", head);
 SB.addEquipToSet(armorSetName, "chest", chest);
 SB.addEquipToSet(armorSetName, "legs", legs);
 SB.addEquipToSet(armorSetName, "feet", feet);
 
+// Register weapons to their own set
+SB.addEquipToSet(weaponSetName, "mainhand", weapons);
+
+// 2 pieces of armor for partial
 SB.addSetReqToBonus(armorBonusNamePartial, bonusDescriptionPartial, armorSetName, 2);
+
+// 4 pieces of armor for full description display
 SB.addSetReqToBonus(armorBonusNameFull, bonusDescriptionFull, armorSetName, 4);
+
+// Intersection requirement: 4 armor + 1 weapon for the stack generation
+SB.addSetReqToBonus(weaponBonusName, "", armorSetName, 4, 2);
+SB.addSetReqToBonus(weaponBonusName, "", weaponSetName, -1, 2);
 
 // ==========================================
 // EVENT
@@ -166,27 +179,16 @@ events.onEntityLivingHurt(function(event as EntityLivingHurtEvent) {
             val attacker as IPlayer = attackerEntity.asIPlayer();
             
             if (!isNull(attacker)) {
-                if (attacker.hasSetBonus(armorBonusNameFull) == true) {
+                
+                // USING THE NEW INTERSECTION BONUS CHECK
+                if (attacker.hasSetBonus(weaponBonusName) == true) {
                     
-                    val heldItem = attacker.mainHandHeldItem;
-                    if (!isNull(heldItem)) {
-                        var holdingValidWeapon = false;
-                        val heldId = heldItem.definition.id;
+                    if (event.amount > 0) {
+                        val stacksToAdd = (event.amount * damageToStackConversion) as int;
                         
-                        for wep in weapons {
-                            if (heldId == wep) {
-                                holdingValidWeapon = true;
-                                break;
-                            }
-                        }
-                        
-                        if (holdingValidWeapon && event.amount > 0) {
-                            val stacksToAdd = (event.amount * damageToStackConversion) as int;
-                            
-                            if (stacksToAdd > 0) {
-                                attacker.addStacks(stackId, stacksToAdd);
-                                attacker.debugMessage(material + " Weapon: Gained " + stacksToAdd + " shield stacks.");
-                            }
+                        if (stacksToAdd > 0) {
+                            attacker.addStacks(stackId, stacksToAdd);
+                            attacker.debugMessage(material + " Weapon: Gained " + stacksToAdd + " shield stacks.");
                         }
                     }
                 }

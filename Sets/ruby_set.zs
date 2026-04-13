@@ -58,23 +58,33 @@ val weapons as string[] = [
 ];
 
 // ==========================================
-// UNIVERSAL REGISTER BLOCK (DO NOT EDIT)
+// UNIVERSAL REGISTER BLOCK
 // ==========================================
 
 val armorSetName as string = material + " Armor Set";
+val weaponSetName as string = material + " Weapon Set";
+
 val armorBonusNamePartial as string = material + " Armor Partial Bonus";
 val armorBonusNameFull as string = material + " Armor Full Bonus";
+val weaponBonusName as string = material + " Weapon Bonus";
 
 SB.addEquipToSet(armorSetName, "head", head);
 SB.addEquipToSet(armorSetName, "chest", chest);
 SB.addEquipToSet(armorSetName, "legs", legs);
 SB.addEquipToSet(armorSetName, "feet", feet);
 
+// Register weapons to their own set
+SB.addEquipToSet(weaponSetName, "mainhand", weapons);
+
 // 2 pieces of armor for partial bonus
 SB.addSetReqToBonus(armorBonusNamePartial, bonusDescriptionPartial, armorSetName, 2);
 
-// 4 pieces of armor for full bonus (Keeps weapon tooltips clean!)
+// 4 pieces of armor for full bonus description display
 SB.addSetReqToBonus(armorBonusNameFull, bonusDescriptionFull, armorSetName, 4);
+
+// Intersection requirement: 4 armor + 1 weapon for the actual splash proc
+SB.addSetReqToBonus(weaponBonusName, "", armorSetName, 4, 2);
+SB.addSetReqToBonus(weaponBonusName, "", weaponSetName, -1, 2);
 
 // ==========================================
 // EVENT
@@ -121,52 +131,35 @@ events.onEntityLivingHurt(function(event as EntityLivingHurtEvent) {
                 }
                 
                 // ---------------------------------------------------------
-                // Full Set (4/4) - Recent Target Splash Damage
+                // Full Set (4/4 + Weapon) - Recent Target Splash Damage
                 // ---------------------------------------------------------
-                if (attacker.hasSetBonus(armorBonusNameFull) == true) {
+                if (attacker.hasSetBonus(weaponBonusName) == true) {
                     
-                    val heldItem = attacker.mainHandHeldItem;
+                    val splashAmount = event.amount * splashDamagePercentage;
+                    val recentTargets = attacker.getMarkedEntities(recentTargetMarkId);
                     
-                    if (!isNull(heldItem)) {
-                        var holdingValidWeapon = false;
-                        val heldId = heldItem.definition.id;
-                        
-                        // Check if holding a Ruby weapon
-                        for wep in weapons {
-                            if (heldId == wep) {
-                                holdingValidWeapon = true;
-                                break;
-                            }
-                        }
-                        
-                        if (holdingValidWeapon) {
-                            val splashAmount = event.amount * splashDamagePercentage;
-                            val recentTargets = attacker.getMarkedEntities(recentTargetMarkId);
+                    // NESTED IF BLOCKS TO PREVENT BYTECODE CORRUPTION
+                    if (!isNull(recentTargets)) {
+                        if (recentTargets.length > 0) {
+                            attacker.debugMessage(material + " Weapon: Splashing " + splashAmount + " damage to " + recentTargets.length + " recent targets.");
                             
-                            // NESTED IF BLOCKS TO PREVENT BYTECODE CORRUPTION
-                            if (!isNull(recentTargets)) {
-                                if (recentTargets.length > 0) {
-                                    attacker.debugMessage(material + " Weapon: Splashing " + splashAmount + " damage to " + recentTargets.length + " recent targets.");
-                                    
-                                    for enemy in recentTargets {
-                                        if (!isNull(enemy)) {
-                                            if (enemy.isAlive()) {
-                                                if (enemy.uuid != targetEntity.uuid) {
-                                                    if (enemy instanceof IEntityLivingBase) {
-                                                        val livingEnemy as IEntityLivingBase = enemy;
-                                                        livingEnemy.dealCustomDamage(attacker, splashAmount, "ruby_splash");
-                                                    }
-                                                }
+                            for enemy in recentTargets {
+                                if (!isNull(enemy)) {
+                                    if (enemy.isAlive()) {
+                                        if (enemy.uuid != targetEntity.uuid) {
+                                            if (enemy instanceof IEntityLivingBase) {
+                                                val livingEnemy as IEntityLivingBase = enemy;
+                                                livingEnemy.dealCustomDamage(attacker, splashAmount, "ruby_splash");
                                             }
                                         }
                                     }
                                 }
                             }
-                            
-                            // Mark the current target so they get splashed on the next swing against someone else
-                            attacker.markEntity(recentTargetMarkId, targetEntity, recentTargetDurationTicks, "add");
                         }
                     }
+                    
+                    // Mark the current target so they get splashed on the next swing against someone else
+                    attacker.markEntity(recentTargetMarkId, targetEntity, recentTargetDurationTicks, "add");
                 }
             }
         }

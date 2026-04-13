@@ -60,20 +60,30 @@ val weapons as string[] = [
 ];
 
 // ==========================================
-// UNIVERSAL REGISTER BLOCK (DO NOT EDIT)
+// UNIVERSAL REGISTER BLOCK
 // ==========================================
 
 val armorSetName as string = material + " Armor Set";
+val weaponSetName as string = material + " Weapon Set";
+
 val armorBonusNamePartial as string = material + " Armor Partial Bonus";
 val armorBonusNameFull as string = material + " Armor Full Bonus";
+val weaponBonusName as string = material + " Weapon Bonus";
 
 SB.addEquipToSet(armorSetName, "head", head);
 SB.addEquipToSet(armorSetName, "chest", chest);
 SB.addEquipToSet(armorSetName, "legs", legs);
 SB.addEquipToSet(armorSetName, "feet", feet);
 
+// Register weapons to their own set
+SB.addEquipToSet(weaponSetName, "mainhand", weapons);
+
 SB.addSetReqToBonus(armorBonusNamePartial, bonusDescriptionPartial, armorSetName, 2);
 SB.addSetReqToBonus(armorBonusNameFull, bonusDescriptionFull, armorSetName, 4);
+
+// Intersection requirement: 4 armor + 1 weapon
+SB.addSetReqToBonus(weaponBonusName, "", armorSetName, 4, 2);
+SB.addSetReqToBonus(weaponBonusName, "", weaponSetName, -1, 2);
 
 // ==========================================
 // EVENT
@@ -134,45 +144,32 @@ events.onEntityLivingHurt(function(event as EntityLivingHurtEvent) {
         val attacker as IPlayer = attackerEntity.asIPlayer();
         
         if (!isNull(attacker)) {
-            if (attacker.hasSetBonus(armorBonusNameFull) == true) {
+            
+            if (attacker.hasSetBonus(weaponBonusName) == true) {
                 
-                val heldItem = attacker.mainHandHeldItem;
-                
-                if (!isNull(heldItem)) {
-                    var holdingValidWeapon = false;
-                    val heldId = heldItem.definition.id;
+                if (event.amount > 0) {
                     
-                    for wep in weapons {
-                        if (heldId == wep) {
-                            holdingValidWeapon = true;
-                            break;
+                    val recentAttackers = attacker.getMarkedEntities(attackerMarkId);
+                    
+                    if (!isNull(recentAttackers)) {
+                        var activeAttackers = 0;
+                        
+                        for enemy in recentAttackers {
+                            if (!isNull(enemy) && enemy.isAlive()) {
+                                activeAttackers += 1;
+                            }
                         }
-                    }
-                    
-                    if (holdingValidWeapon && event.amount > 0) {
                         
-                        val recentAttackers = attacker.getMarkedEntities(attackerMarkId);
-                        
-                        if (!isNull(recentAttackers)) {
-                            var activeAttackers = 0;
+                        if (activeAttackers > 0) {
+                            var totalBonus as double = (activeAttackers as double) * bonusDamagePerAttacker;
                             
-                            for enemy in recentAttackers {
-                                if (!isNull(enemy) && enemy.isAlive()) {
-                                    activeAttackers += 1;
-                                }
+                            // CLAMP THE MAXIMUM BONUS DAMAGE
+                            if (totalBonus > maxBonusDamage) {
+                                totalBonus = maxBonusDamage;
                             }
                             
-                            if (activeAttackers > 0) {
-                                var totalBonus as double = (activeAttackers as double) * bonusDamagePerAttacker;
-                                
-                                // CLAMP THE MAXIMUM BONUS DAMAGE
-                                if (totalBonus > maxBonusDamage) {
-                                    totalBonus = maxBonusDamage;
-                                }
-                                
-                                attacker.debugMessage(material + " Weapon: +" + ((totalBonus * 100.0) as int) + "% damage fueled by " + activeAttackers + " attackers.");
-                                event.amount = event.amount * (1.0 + totalBonus);
-                            }
+                            attacker.debugMessage(material + " Weapon: +" + ((totalBonus * 100.0) as int) + "% damage fueled by " + activeAttackers + " attackers.");
+                            event.amount = event.amount * (1.0 + totalBonus);
                         }
                     }
                 }
