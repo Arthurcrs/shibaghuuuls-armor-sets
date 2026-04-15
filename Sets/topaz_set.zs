@@ -4,6 +4,7 @@ import crafttweaker.entity.IEntityLivingBase;
 import crafttweaker.damage.IDamageSource;
 import crafttweaker.player.IPlayer;
 import crafttweaker.event.EntityLivingHurtEvent;
+import mods.mahzenutils.Stacks;
 
 // ==========================================
 // BALANCING
@@ -87,6 +88,13 @@ SB.addSetReqToBonus(armorBonusNameFull, bonusDescriptionFull, armorSetName, 4);
 // Intersection requirement: 4 armor + 1 weapon for the stack generation
 SB.addSetReqToBonus(weaponBonusName, "", armorSetName, 4, 2);
 SB.addSetReqToBonus(weaponBonusName, "", weaponSetName, -1, 2);
+
+// ==========================================
+// STACK REGISTRY
+// ==========================================
+
+// Extremely high cap since the shield absorbs damage indefinitely
+Stacks.registerStack(stackId, 99999, 0, "PERMANENT", "PRESERVE");
 
 // ==========================================
 // EVENT
